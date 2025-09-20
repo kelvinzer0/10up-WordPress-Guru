@@ -1,0 +1,270 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>WordPress Development Expert Repository Collection</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+</head>
+
+<body bgcolor="#C0C0C0" text="#000000" link="#0000FF" vlink="#800080" alink="#FF0000">
+
+<center>
+<h1><font color="#000080" size="5">WordPress Development Repository Collection</font></h1>
+<h2><font color="#800000">10up Organization - Professional WordPress Solutions</font></h2>
+<hr width="80%" size="3" color="#808080">
+</center>
+
+<table width="100%" border="1" cellpadding="5" cellspacing="0" bgcolor="#F0F0F0">
+<tr bgcolor="#D0D0D0">
+<td colspan="3">
+<center>
+<b>CONTROLS</b>
+</center>
+</td>
+</tr>
+<tr>
+<td>
+<button onclick="fetchRepositories()" id="fetchBtn">FETCH REPOSITORIES</button>
+</td>
+<td>
+<input type="text" id="searchInput" size="30" placeholder="Search repositories..." onkeyup="filterRepositories()">
+</td>
+<td>
+<b>Total:</b> <span id="totalCount">0</span> | 
+<b>Showing:</b> <span id="showingCount">0</span>
+</td>
+</tr>
+</table>
+
+<p>&nbsp;</p>
+
+<div id="loading" style="display:none;">
+<center>
+<h3><blink>*** LOADING REPOSITORIES ***</blink></h3>
+<p>Please wait while fetching data from GitHub API...</p>
+</center>
+</div>
+
+<div id="errorDiv" style="display:none;">
+<center>
+<table border="2" bgcolor="#FFCCCC" width="80%">
+<tr>
+<td>
+<center><b>ERROR!</b></center>
+<p id="errorMessage"></p>
+</td>
+</tr>
+</table>
+</center>
+</div>
+
+<div id="tableContainer" style="display:none;">
+<table border="1" cellpadding="3" cellspacing="1" width="100%" bgcolor="#FFFFFF">
+<tr bgcolor="#808080">
+<th><font color="white"><b>REPOSITORY NAME</b></font></th>
+<th><font color="white"><b>DESCRIPTION</b></font></th>
+<th><font color="white"><b>LANGUAGE</b></font></th>
+<th><font color="white"><b>STARS</b></font></th>
+<th><font color="white"><b>FORKS</b></font></th>
+<th><font color="white"><b>UPDATED</b></font></th>
+</tr>
+<tbody id="repoTableBody">
+</tbody>
+</table>
+</div>
+
+<div id="noResults" style="display:none;">
+<center>
+<h3><font color="#FF0000">NO REPOSITORIES FOUND!</font></h3>
+<p>Try different search terms or fetch repositories first.</p>
+</center>
+</div>
+
+<p>&nbsp;</p>
+<hr>
+<center>
+<p>
+<font size="2">
+<b>How to use:</b><br>
+1. Click "FETCH REPOSITORIES" to load all repositories<br>
+2. Use search box to filter by name, description or language<br>
+3. Click repository names to visit GitHub page<br>
+</font>
+</p>
+
+<p>
+<font size="1" color="#666666">
+WordPress Development Expert Repository Collection - 10up Organization<br>
+HTML 4.01 - Classic Web Design - No CSS
+</font>
+</p>
+</center>
+
+<script language="JavaScript">
+<!--
+var allRepositories = new Array();
+var filteredRepositories = new Array();
+
+function fetchRepositories() {
+    var fetchBtn = document.getElementById('fetchBtn');
+    var loading = document.getElementById('loading');
+    var tableContainer = document.getElementById('tableContainer');
+    var errorDiv = document.getElementById('errorDiv');
+    var noResults = document.getElementById('noResults');
+    
+    // Hide all divs
+    tableContainer.style.display = 'none';
+    errorDiv.style.display = 'none';
+    noResults.style.display = 'none';
+    
+    fetchBtn.disabled = true;
+    fetchBtn.innerHTML = 'FETCHING...';
+    loading.style.display = 'block';
+
+    allRepositories = new Array();
+    var page = 1;
+    
+    fetchPage(page);
+}
+
+function fetchPage(page) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://api.github.com/orgs/10up/repos?per_page=100&page=' + page + '&sort=updated', true);
+    
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+            var fetchBtn = document.getElementById('fetchBtn');
+            var loading = document.getElementById('loading');
+            var errorDiv = document.getElementById('errorDiv');
+            var errorMessage = document.getElementById('errorMessage');
+            
+            if (xhr.status == 200) {
+                var repos = JSON.parse(xhr.responseText);
+                
+                if (repos.length > 0) {
+                    for (var i = 0; i < repos.length; i++) {
+                        allRepositories.push(repos[i]);
+                    }
+                    // Fetch next page
+                    fetchPage(page + 1);
+                } else {
+                    // No more repos, finish up
+                    filteredRepositories = allRepositories.slice();
+                    displayRepositories();
+                    updateStats();
+                    
+                    fetchBtn.disabled = false;
+                    fetchBtn.innerHTML = 'REFRESH REPOSITORIES';
+                    loading.style.display = 'none';
+                }
+            } else {
+                var errorText = 'GitHub API Error: ' + xhr.status;
+                if (xhr.status == 403) {
+                    errorText = 'GitHub API rate limit exceeded. Please try again later.';
+                }
+                
+                errorMessage.innerHTML = errorText;
+                errorDiv.style.display = 'block';
+                loading.style.display = 'none';
+                fetchBtn.disabled = false;
+                fetchBtn.innerHTML = 'FETCH REPOSITORIES';
+            }
+        }
+    };
+    
+    xhr.send();
+}
+
+function displayRepositories() {
+    var tableBody = document.getElementById('repoTableBody');
+    var tableContainer = document.getElementById('tableContainer');
+    var noResults = document.getElementById('noResults');
+    
+    tableBody.innerHTML = '';
+    noResults.style.display = 'none';
+
+    if (filteredRepositories.length == 0) {
+        noResults.style.display = 'block';
+        tableContainer.style.display = 'none';
+        return;
+    }
+
+    for (var i = 0; i < filteredRepositories.length; i++) {
+        var repo = filteredRepositories[i];
+        var row = document.createElement('tr');
+        
+        // Alternate row colors
+        if (i % 2 == 0) {
+            row.bgcolor = '#F8F8F8';
+        } else {
+            row.bgcolor = '#FFFFFF';
+        }
+        
+        var repoName = repo.name;
+        var repoUrl = repo.html_url;
+        var description = repo.description || 'No description available';
+        var language = repo.language || '-';
+        var stars = repo.stargazers_count;
+        var forks = repo.forks_count;
+        var updated = formatDate(repo.updated_at);
+        
+        // Add indicators
+        var indicators = '';
+        if (repo.private) indicators += ' [PRIVATE]';
+        if (repo.fork) indicators += ' [FORK]';
+        if (repo.archived) indicators += ' [ARCHIVED]';
+        
+        row.innerHTML = '<td><a href="' + repoUrl + '" target="_blank"><b>' + repoName + '</b></a>' + indicators + '</td>' +
+                       '<td><font size="2">' + description + '</font></td>' +
+                       '<td><b>' + language + '</b></td>' +
+                       '<td align="center"><font color="#006600">' + stars + '</font></td>' +
+                       '<td align="center"><font color="#000066">' + forks + '</font></td>' +
+                       '<td><font size="1">' + updated + '</font></td>';
+        
+        tableBody.appendChild(row);
+    }
+
+    tableContainer.style.display = 'block';
+}
+
+function filterRepositories() {
+    var searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    
+    if (searchTerm == '') {
+        filteredRepositories = allRepositories.slice();
+    } else {
+        filteredRepositories = new Array();
+        for (var i = 0; i < allRepositories.length; i++) {
+            var repo = allRepositories[i];
+            if (repo.name.toLowerCase().indexOf(searchTerm) >= 0 ||
+                (repo.description && repo.description.toLowerCase().indexOf(searchTerm) >= 0) ||
+                (repo.language && repo.language.toLowerCase().indexOf(searchTerm) >= 0)) {
+                filteredRepositories.push(repo);
+            }
+        }
+    }
+
+    displayRepositories();
+    updateStats();
+}
+
+function updateStats() {
+    document.getElementById('totalCount').innerHTML = allRepositories.length;
+    document.getElementById('showingCount').innerHTML = filteredRepositories.length;
+}
+
+function formatDate(dateString) {
+    var date = new Date(dateString);
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
+}
+
+// Auto-fetch when page loads
+window.onload = function() {
+    fetchRepositories();
+}
+//-->
+</script>
+
+</body>
+</html>
